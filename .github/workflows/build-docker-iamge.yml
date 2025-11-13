@@ -1,4 +1,4 @@
-name: Build & Push Docker (GHCR)
+name: Build & Push Docker
 
 on:
   push:
