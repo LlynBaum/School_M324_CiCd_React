@@ -32,11 +32,6 @@ jobs:
           CI: true
         run: npm test
 
-      - name: Build React app
-        env:
-          CI: true
-        run: npm run build
-
       - name: Build Docker image
         run: docker build -t $LOCAL_IMAGE_REF:${{ github.sha }} .
 
