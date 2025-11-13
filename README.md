@@ -31,6 +31,20 @@ Der Token muss im Repo unter Settings -> Security -> Secrets -> Actions als Secr
 
 Dan im yaml file, muss das Login nun `docker/login-action@v3` auf den DockerHub User mit dem Token gehen. Die Action die das Dockerfile builded und pushed bleibt gleich.
 
+## Zusatz
+
+Ich habe aus 2 verschiedenen Actions für DockerHub und GHCR eine einzelne Action gemacht. 
+Das Ziel: das Ract Porjekt muss nur einmal gebuilded werden.
+Wie es geht:
+1. Builden von React Project
+2. Run Tests
+3. Build Dockerfile
+4. Zip Dockerfile und upload als artifact
+5. In Github und DockerHub push jobs
+    1. Download Artefact
+    2. Metadaten für Image ready machen
+    3. docker push
+
 # Resultat
 
 Das Image auf der GitHub Registry:

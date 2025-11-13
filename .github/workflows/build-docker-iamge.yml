@@ -8,8 +8,12 @@ permissions:
   contents: read
   packages: write
 
+env:
+  IMAGE_NAME: ref-card-02
+  LOCAL_IMAGE_REF: local/ref-card-02
+
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +37,36 @@ jobs:
           CI: true
         run: npm run build
 
+      - name: Build Docker image
+        run: docker build -t $LOCAL_IMAGE_REF:${{ github.sha }} .
+
+      - name: Save Docker image to tar
+        run: docker save $LOCAL_IMAGE_REF:${{ github.sha }} -o image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar
+
+  push-ghcr:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i image.tar
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -50,12 +84,63 @@ jobs:
             type=ref,event=tag
             type=sha
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Tag & push image to GHCR
+        run: |
+          tags="${{ steps.meta-ghcr.outputs.tags }}"
+          echo "Tags for GHCR:"
+          echo "$tags"
+
+          for tag in $tags; do
+            echo "Tagging and pushing $tag"
+            docker tag $LOCAL_IMAGE_REF:${{ github.sha }} "$tag"
+            docker push "$tag"
+          done
+
+  push-dockerhub:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64
+          name: docker-image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i image.tar
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata (tags, labels) for Docker Hub
+        id: meta-dh
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Tag & push image to Docker Hub
+        run: |
+          tags="${{ steps.meta-dh.outputs.tags }}"
+          echo "Tags for Docker Hub:"
+          echo "$tags"
+
+          for tag in $tags; do
+            echo "Tagging and pushing $tag"
+            docker tag $LOCAL_IMAGE_REF:${{ github.sha }} "$tag"
+            docker push "$tag"
+          done
