@@ -1,5 +1,5 @@
 import React from 'react';
-import {Col, Container, Row} from "react-bootstrap";
+import { Col, Container, Row } from "react-bootstrap";
 import './App.css';
 
 function App() {
@@ -7,10 +7,10 @@ function App() {
     <Container>
       <Row>
         <Col>
-            <h1>App Ref. Card 02</h1>
-            <div className="message">
-              react app ... up and running
-            </div>
+          <h1>App Ref. Card 02</h1>
+          <div className="message">
+            react app ... up and running
+          </div>
         </Col>
         <Row>
           <Col>
