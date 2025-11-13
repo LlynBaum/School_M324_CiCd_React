@@ -12,6 +12,8 @@ RUN npm ci
 COPY . .
 
 # Build the app for production
+# Set NODE_OPTIONS to use legacy OpenSSL provider for compatibility with older react-scripts
+ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN npm run build
 
 # --- Stage 2: Run with Nginx ---
